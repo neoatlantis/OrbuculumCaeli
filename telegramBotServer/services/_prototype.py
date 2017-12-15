@@ -14,8 +14,13 @@ class _TelegramBotService:
 
     def __standardCallbackBuilder(self, customizedCallback):
         def ret(bot, update):
-            argv = customizedCallback(update.message)
-            self.server.sender.sendMessage(
+            ret = customizedCallback(update.message)
+            if type(ret) == tuple and len(ret) == 2:
+                argv, msgtype = ret
+            else:
+                argv, msgtype = ret, "message"
+            self.server.sender.send(
+                msgtype,
                 bot, 
                 update.message.chat_id,
                 argv
