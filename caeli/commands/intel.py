@@ -15,8 +15,12 @@ class OnIntelCommand(TelegramBotCommandService):
             INTELBASE + "h8images-eastern_china_band_12/latest.gif"),
         ("Met-10 Europe & Africa", \
             INTELBASE + "meteosat10images-africa_northern_overview_eumetsat_dust/latest.jpg"),
+        ("Met-10 Europe", \
+            "https://www.dwd.de/DWD/wetter/sat/bilder/meteosat/satbild_hrvir_akt.png"),
         ("Met-10 Northern Atlantic", \
             INTELBASE + "meteosat10images-atlantic_northern_overview_eumetsat_dust/latest.jpg"),
+        ("Current Europe Weather", \
+            "https://www.dwd.de/DWD/wetter/sat/satwetter/satwetter.jpg"),
         ("Europe Weather Warnings", \
             "http://www.unwetterzentrale.de/images/map/europe_index.png"),
 
