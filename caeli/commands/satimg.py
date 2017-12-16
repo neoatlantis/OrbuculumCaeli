@@ -2,6 +2,7 @@
 
 import re
 import random
+import datetime
 from telegram import ReplyKeyboardMarkup
 from telegramBotServer.services.command import *
 
@@ -14,6 +15,19 @@ class OnSatimgCommand(TelegramBotCommandService):
         ("Met-10 Europe & Africa",          "meteosat10images-africa_northern_overview_eumetsat_dust/latest.jpg"),
         ("Met-10 Northern Atlantic",        "meteosat10images-atlantic_northern_overview_eumetsat_dust/latest.jpg"),
     ]
+
+    def __getTimestamp(self):
+        # Used for caching with respect to Telegram. The timestamp remains
+        # unchanged for every 5 mintues rather than every request as with a
+        # random number.
+        now = datetime.datetime.utcnow()
+        return "%d%d%d%d%d" % (
+            now.year,
+            now.month,
+            now.day,
+            now.hour,
+            (round(now.minute / 5) * 5) % 60,
+        )
 
     def __init__(self, server):
         TelegramBotCommandService.__init__(self, server, 'satimg')
@@ -36,8 +50,8 @@ class OnSatimgCommand(TelegramBotCommandService):
             imgid = -1
         if imgid >= 0 and imgid < len(self.products):
             # Returns image as specified by `imgid`.
-            rndsuffix = "?__wtf=%f" % random.random()
-            ret["photo"] = self.baseUrl + self.products[imgid][1] + rndsuffix
+            anticache = "?__wtf=%s" % self.__getTimestamp()
+            ret["photo"] = self.baseUrl + self.products[imgid][1] + anticache 
             return ret, "photo"
 
         ret["text"] = "Please select a product you want to check out."
