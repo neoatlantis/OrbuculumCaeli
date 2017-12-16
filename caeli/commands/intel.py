@@ -6,14 +6,20 @@ import datetime
 from telegram import ReplyKeyboardMarkup
 from telegramBotServer.services.command import *
 
+INTELBASE = "http://intell.neoatlantis.org/"
 
 class OnIntelCommand(TelegramBotCommandService):
 
-    baseUrl = "http://intell.neoatlantis.org/"
     products = [
-        ("HMWR-8 Eastern China Clouds",     "h8images-eastern_china_band_12/latest.gif"),
-        ("Met-10 Europe & Africa",          "meteosat10images-africa_northern_overview_eumetsat_dust/latest.jpg"),
-        ("Met-10 Northern Atlantic",        "meteosat10images-atlantic_northern_overview_eumetsat_dust/latest.jpg"),
+        ("HMWR-8 Eastern China Clouds",\
+            INTELBASE + "h8images-eastern_china_band_12/latest.gif"),
+        ("Met-10 Europe & Africa", \
+            INTELBASE + "meteosat10images-africa_northern_overview_eumetsat_dust/latest.jpg"),
+        ("Met-10 Northern Atlantic", \
+            INTELBASE + "meteosat10images-atlantic_northern_overview_eumetsat_dust/latest.jpg"),
+        ("Europe Weather Warnings", \
+            "http://www.unwetterzentrale.de/images/map/europe_index.png"),
+
     ]
 
     def __getTimestamp(self):
@@ -51,7 +57,7 @@ class OnIntelCommand(TelegramBotCommandService):
         if imgid >= 0 and imgid < len(self.products):
             # Returns image as specified by `imgid`.
             anticache = "?__wtf=%s" % self.__getTimestamp()
-            ret["photo"] = self.baseUrl + self.products[imgid][1] + anticache 
+            ret["photo"] = self.products[imgid][1] + anticache 
             return ret, "photo"
 
         ret["text"] = "Please select a product you want to check out."
