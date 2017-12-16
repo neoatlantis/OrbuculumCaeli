@@ -8,7 +8,7 @@ class OnStartCommand(TelegramBotCommandService):
     def __init__(self, server):
         TelegramBotCommandService.__init__(self, server, 'start')
         self.__menu = ReplyKeyboardMarkup([
-            ["/satimg get latest satellite images!"],
+            ["/intel get latest intel!"],
             [KeyboardButton(
                 "Weather forecast for your location!", 
                 request_location=True
@@ -18,5 +18,5 @@ class OnStartCommand(TelegramBotCommandService):
     def handler(self, message):
         text = "Welcome to Orbuculum Caeli bot!" + \
                "\n\nSend me a location to get weather forecasts, or \n" + \
-               "Use /satimg command to get latest satellite images."
+               "Use /intel command to get latest intelligences."
         return {"text": text, "reply_markup": self.__menu }

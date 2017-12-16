@@ -7,7 +7,7 @@ from telegram import ReplyKeyboardMarkup
 from telegramBotServer.services.command import *
 
 
-class OnSatimgCommand(TelegramBotCommandService):
+class OnIntelCommand(TelegramBotCommandService):
 
     baseUrl = "http://intell.neoatlantis.org/"
     products = [
@@ -30,9 +30,9 @@ class OnSatimgCommand(TelegramBotCommandService):
         )
 
     def __init__(self, server):
-        TelegramBotCommandService.__init__(self, server, 'satimg')
+        TelegramBotCommandService.__init__(self, server, 'intel')
         self.__menu = ReplyKeyboardMarkup([
-            ["/satimg #%d: %s" % (i+1, self.products[i][0])]
+            ["/intel #%d: %s" % (i+1, self.products[i][0])]
             for i in range(0, len(self.products))
         ], resize_keyboard=True)
 

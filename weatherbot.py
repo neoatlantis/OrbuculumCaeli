@@ -9,7 +9,7 @@ from telegramBotServer import TelegramBotServer
 
 from caeli.reports.report import ReportNWP
 from caeli.commands.start import OnStartCommand
-from caeli.commands.satimg import OnSatimgCommand
+from caeli.commands.intel import OnIntelCommand
 
 
 config = yaml.load(open(sys.argv[1], "r").read())
@@ -23,7 +23,7 @@ logging.basicConfig(
 botServer = TelegramBotServer(token=token)
 services = [
     OnStartCommand(botServer),
-    OnSatimgCommand(botServer),
+    OnIntelCommand(botServer),
     ReportNWP(botServer),
 ]
 
