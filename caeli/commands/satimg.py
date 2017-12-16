@@ -12,6 +12,7 @@ class OnSatimgCommand(TelegramBotCommandService):
     products = [
         ("HMWR-8 Eastern China Clouds",     "h8images-eastern_china_band_12/latest.gif"),
         ("Met-10 Europe & Africa",          "meteosat10images-africa_northern_overview_eumetsat_dust/latest.jpg"),
+        ("Met-10 Northern Atlantic",        "meteosat10images-atlantic_northern_overview_eumetsat_dust/latest.jpg"),
     ]
 
     def __init__(self, server):
