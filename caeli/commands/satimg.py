@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 
+import re
+import random
 from telegram import ReplyKeyboardMarkup
 from telegramBotServer.services.command import *
-import re
+
 
 class OnSatimgCommand(TelegramBotCommandService):
 
@@ -33,7 +35,8 @@ class OnSatimgCommand(TelegramBotCommandService):
             imgid = -1
         if imgid >= 0 and imgid < len(self.products):
             # Returns image as specified by `imgid`.
-            ret["photo"] = self.baseUrl + self.products[imgid][1]
+            rndsuffix = "?__wtf=%f" % random.random()
+            ret["photo"] = self.baseUrl + self.products[imgid][1] + rndsuffix
             return ret, "photo"
 
         ret["text"] = "Please select a product you want to check out."

@@ -38,7 +38,7 @@ def _windReprCN(ws):
 
 def _wmoRepr(wmo):
     msg = {
-        3: '晴转阴',
+        3: '云量增加',
         20: "雾", 21: "降水", 22: "毛毛雨雪", 23: "雨", 24: "雪", 25:
         "冻雨或冻毛毛雨", 26: "雷阵雨", 27: "沙尘暴或雪暴", 28:
         "沙尘暴或雪暴，能见度一般", 29: "沙尘暴或雪暴，能见度差",
@@ -111,7 +111,12 @@ def report(lat, lng):
         dayForecasts[date] = sorted(\
             dayForecasts[date], key=lambda i: i["forecast"])
 
+    randomForecast = data[key]
+
     ret = ""
+    ret += "预报地点: 经度 %f, 纬度 %f\n" % \
+            (randomForecast["lng"], randomForecast["lat"])
+    ret += "\n"
     for date in sorted(dayForecasts.keys())[:3]:
         ret += _dateRepr(date) + "\n"
         for forecast in dayForecasts[date]:
