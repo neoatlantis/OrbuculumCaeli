@@ -87,6 +87,18 @@ def _dayForecast(forecast):
 
     return ret
 
+def translateCoordinates(coordinates):
+    lat, lng = coordinates[0], coordinates[1]
+    latRet, lngRet = "赤道", "本初子午线"
+    if lat > 0:
+        latRet = "%.4f N" % abs(lat)
+    elif lat < 0:
+        latRet = "%4.f S" % abs(lat)
+    if lng > 0:
+        lngRet = "%.4f E" % abs(lng)
+    elif lng < 0:
+        lngRet = "%.4f W" % abs(lng)
+    return "%s, %s" % (latRet, lngRet)
 ##############################################################################
 
 strptime = lambda i: datetime.datetime.strptime(i, "%Y-%m-%dT%H:%M:%S")
@@ -96,26 +108,30 @@ def report(lat, lng):
     print(url)
     q = requests.get(url)
     data = q.json()
+    forecasts = data["forecasts"]
+    metadata = data["metadata"]
 
     dayForecasts = {}
 
-    for key in data:
-        data[key]["forecast"] = strptime(data[key]["forecast"])
-        data[key]["runtime"] = strptime(data[key]["runtime"])
+    for key in forecasts:
+        forecasts[key]["forecast"] = strptime(forecasts[key]["forecast"])
+        forecasts[key]["runtime"] = strptime(forecasts[key]["runtime"])
         date = key[:10]
         if date not in dayForecasts:
             dayForecasts[date] = [] 
-        dayForecasts[date].append(data[key])
+        dayForecasts[date].append(forecasts[key])
 
     for date in dayForecasts:
         dayForecasts[date] = sorted(\
             dayForecasts[date], key=lambda i: i["forecast"])
 
-    randomForecast = data[key]
 
     ret = ""
-    ret += "预报地点: 经度 %f, 纬度 %f\n" % \
-            (randomForecast["lng"], randomForecast["lat"])
+    ret += "请求地点: %s\n" %\
+            translateCoordinates(metadata["queryCoordinates"])
+    ret += "预报地点: %s\n" %\
+            translateCoordinates(metadata["forecastCoordinates"])
+    ret += "找到 %d 条预报。\n" % metadata["count"]
     ret += "\n"
     for date in sorted(dayForecasts.keys())[:3]:
         ret += _dateRepr(date) + "\n"
