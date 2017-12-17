@@ -101,7 +101,7 @@ def translateCoordinates(coordinates):
     return "%s, %s" % (latRet, lngRet)
 ##############################################################################
 
-strptime = lambda i: datetime.datetime.strptime(i, "%Y-%m-%dT%H:%M:%S")
+strptime = lambda i: datetime.datetime.strptime(i, "%Y-%m-%dT%H:%M:%SZ")
 
 def report(lat, lng):
     url = "http://intell.neoatlantis.org/nwp/%f/%f/" % (lat, lng)
