@@ -99,13 +99,36 @@ def translateCoordinates(coordinates):
     elif lng < 0:
         lngRet = "%.4f W" % abs(lng)
     return "%s, %s" % (latRet, lngRet)
+
+def averagePressureAndTemperatureIn24hrs(forecasts):
+    now = datetime.datetime.utcnow()
+    pn, Tn = [], []
+
+    for date in sorted(forecasts.keys())[:24]:
+        forecast = forecasts[date]
+        forecastTime = forecast["forecast"]
+        if (forecastTime - now).total_seconds() <= 86400:
+            pressure = forecast["p_surface"]
+            temperature = forecast["t_2m"]
+            pn.append(pressure)
+            Tn.append(temperature)
+
+    p = sum(pn) / len(pn)
+    T = sum(Tn) / len(Tn) + 273.15
+    return p, T
+
 ##############################################################################
 
 strptime = lambda i: datetime.datetime.strptime(i, "%Y-%m-%dT%H:%M:%SZ")
 
-def astroData(lat, lng):
+def astroData(lat, lng, pressureFix=None, temperatureFix=None):
     try:
         url = "http://intell.neoatlantis.org/astro/%f/%f/json" % (lat, lng)
+        args = []
+        if pressureFix: args.append("pressure=%f" % pressureFix)
+        if temperatureFix: args.append("temperature=%f" % temperatureFix)
+        if args: url += "?" + "&".join(args)
+        print(url)
         q = requests.get(url)
         data = q.json()
     except Exception as e:
@@ -157,6 +180,9 @@ def report(lat, lng):
         dayForecasts[date] = sorted(\
             dayForecasts[date], key=lambda i: i["forecast"])
 
+    # End of preparation of forecast data. Now begins forecast.
+
+    avgP, avgT = averagePressureAndTemperatureIn24hrs(forecasts)
 
     ret = ""
     ret += "请求地点: %s\n" %\
@@ -167,7 +193,7 @@ def report(lat, lng):
     ret += "\n<i>以下所有时刻为UTC时间</i>\n\n"
 
     ret += "**** <strong>日出及晨昏蒙影时刻</strong> ****\n"
-    ret += astroData(lat, lng)
+    ret += astroData(lat, lng, pressureFix=avgP, temperatureFix=avgT)
 
     for date in sorted(dayForecasts.keys())[:3]:
         ret += "\n"
