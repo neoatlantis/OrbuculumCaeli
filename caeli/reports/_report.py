@@ -103,6 +103,38 @@ def translateCoordinates(coordinates):
 
 strptime = lambda i: datetime.datetime.strptime(i, "%Y-%m-%dT%H:%M:%SZ")
 
+def astroData(lat, lng):
+    try:
+        url = "http://intell.neoatlantis.org/astro/%f/%f/json" % (lat, lng)
+        q = requests.get(url)
+        data = q.json()
+    except Exception as e:
+        print(e)
+        return "No available astronomical data."
+
+    return ("""
+<pre>
+日     出: %s
+日     落: %s
+民用晨光始: %s
+民用昏影终: %s
+航海晨光始: %s
+航海昏影终: %s
+天文晨光始: %s
+天文昏影终: %s
+</pre>
+    """ % (
+        data["heaven"]["sun"]["rising"], 
+        data["heaven"]["sun"]["setting"], 
+        data["observer"]["twilight"]["civil"]["begin"],
+        data["observer"]["twilight"]["civil"]["end"],
+        data["observer"]["twilight"]["nautical"]["begin"],
+        data["observer"]["twilight"]["nautical"]["end"],
+        data["observer"]["twilight"]["astronomical"]["begin"],
+        data["observer"]["twilight"]["astronomical"]["end"],
+    )).strip().replace("T", " ").replace("Z", "")
+
+
 def report(lat, lng):
     url = "http://intell.neoatlantis.org/nwp/%f/%f/" % (lat, lng)
     print(url)
@@ -132,9 +164,14 @@ def report(lat, lng):
     ret += "预报地点: %s\n" %\
             translateCoordinates(metadata["forecastCoordinates"])
     ret += "找到 %d 条预报。\n" % metadata["count"]
-    ret += "\n"
+    ret += "\n<i>以下所有时刻为UTC时间</i>\n\n"
+
+    ret += "**** <strong>日出及晨昏蒙影时刻</strong> ****\n"
+    ret += astroData(lat, lng)
+
     for date in sorted(dayForecasts.keys())[:3]:
-        ret += _dateRepr(date) + "\n"
+        ret += "\n"
+        ret += "**** " + _dateRepr(date) + " ****\n"
         for forecast in dayForecasts[date]:
             ret += _dayForecast(forecast) + "\n"
     return ret 
