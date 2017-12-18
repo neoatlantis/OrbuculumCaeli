@@ -139,6 +139,8 @@ def astroData(lat, lng, pressureFix=None, temperatureFix=None):
 <pre>
 日     出: %s
 日     落: %s
+月     出: %s
+月     落: %s
 民用晨光始: %s
 民用昏影终: %s
 航海晨光始: %s
@@ -149,6 +151,8 @@ def astroData(lat, lng, pressureFix=None, temperatureFix=None):
     """ % (
         data["heaven"]["sun"]["rising"], 
         data["heaven"]["sun"]["setting"], 
+        data["heaven"]["moon"]["rising"], 
+        data["heaven"]["moon"]["setting"], 
         data["observer"]["twilight"]["civil"]["begin"],
         data["observer"]["twilight"]["civil"]["end"],
         data["observer"]["twilight"]["nautical"]["begin"],
@@ -192,7 +196,7 @@ def report(lat, lng):
     ret += "找到 %d 条预报。\n" % metadata["count"]
     ret += "\n<i>以下所有时刻为UTC时间</i>\n\n"
 
-    ret += "**** <strong>日出及晨昏蒙影时刻</strong> ****\n"
+    ret += "**** <strong>日月及晨昏蒙影时刻</strong> ****\n"
     ret += astroData(lat, lng, pressureFix=avgP, temperatureFix=avgT)
 
     for date in sorted(dayForecasts.keys())[:3]:
