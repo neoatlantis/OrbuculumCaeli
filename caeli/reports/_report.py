@@ -6,9 +6,21 @@ import struct
 
 ##############################################################################
 
-_dateRepr = lambda dt: "<strong>%04d-%02d-%02d</strong>" % dt.timetuple()[0:3]
+strptime = lambda i: datetime.datetime.strptime(i, "%Y-%m-%dT%H:%M:%SZ")
+
+def _dtRepr(dt, tzOffset):
+    if type(dt) == str: dt = strptime(dt)
+    return "%04d-%02d-%02d %02d:%02d:%02d" % (dt+tzOffset).timetuple()[:6]
+_dateRepr = lambda dt: "%04d-%02d-%02d" % dt.timetuple()[0:3]
 _hourRepr = lambda dt: chr(0x3358+dt.hour)
 _tempRepr = lambda i: "%3.1f\u2103" % i
+
+def _tzRepr(timeDelta):
+    absSeconds = abs(timeDelta.total_seconds())
+    isMinus = (timeDelta.total_seconds() < 0)
+    hours = int(absSeconds / 3600)
+    minutes = int((absSeconds % 3600) / 60)
+    return "UTC%s%02d:%02d" % (isMinus and "-" or "+", hours, minutes)
 
 def _windReprCN(ws):
     if type(ws) != float or ws < 0: return "风力未知"
@@ -118,7 +130,6 @@ def averagePressureAndTemperatureIn24hrs(forecasts):
 
 ##############################################################################
 
-strptime = lambda i: datetime.datetime.strptime(i, "%Y-%m-%dT%H:%M:%SZ")
 
 # ---- Routine for getting observer's astronomical info from Project Orbuculum
 #      Celesti.
@@ -137,15 +148,17 @@ def astroData(lat, lng, pressureFix=None, temperatureFix=None):
         data = q.json()
     except Exception as e:
         print(e)
-        return "No available astronomical data."
+        return "No available astronomical data.", {
+            'status': 'default',
+            'dstOffset': 0,
+            'rawOffset': 0,
+            'timeZoneId': 'Etc/UTC',
+            'timeZoneName': 'Coordinated Universal Time',
+        } 
 
     tzInfo = data["observer"]["timezone"] 
     tzOffset = datetime.timedelta(
         seconds=(tzInfo["rawOffset"] + tzInfo["dstOffset"]))
-
-    def _dtRepr(srcstr):
-        dt = strptime(srcstr) + tzOffset 
-        return "%04d-%02d-%02d %02d:%02d:%02d" % tuple(dt.timetuple())[0:6]
 
     return ("""
 <pre>
@@ -161,16 +174,16 @@ def astroData(lat, lng, pressureFix=None, temperatureFix=None):
 天文昏影终: %s
 </pre>
     """ % (
-        _dtRepr(data["heaven"]["sun"]["rising"]),
-        _dtRepr(data["heaven"]["sun"]["setting"]),
-        _dtRepr(data["heaven"]["moon"]["rising"]), 
-        _dtRepr(data["heaven"]["moon"]["setting"]), 
-        _dtRepr(data["observer"]["twilight"]["civil"]["begin"]),
-        _dtRepr(data["observer"]["twilight"]["civil"]["end"]),
-        _dtRepr(data["observer"]["twilight"]["nautical"]["begin"]),
-        _dtRepr(data["observer"]["twilight"]["nautical"]["end"]),
-        _dtRepr(data["observer"]["twilight"]["astronomical"]["begin"]),
-        _dtRepr(data["observer"]["twilight"]["astronomical"]["end"]),
+        _dtRepr(data["heaven"]["sun"]["rising"], tzOffset=tzOffset),
+        _dtRepr(data["heaven"]["sun"]["setting"], tzOffset=tzOffset),
+        _dtRepr(data["heaven"]["moon"]["rising"], tzOffset=tzOffset), 
+        _dtRepr(data["heaven"]["moon"]["setting"], tzOffset=tzOffset), 
+        _dtRepr(data["observer"]["twilight"]["civil"]["begin"], tzOffset=tzOffset),
+        _dtRepr(data["observer"]["twilight"]["civil"]["end"], tzOffset=tzOffset),
+        _dtRepr(data["observer"]["twilight"]["nautical"]["begin"], tzOffset=tzOffset),
+        _dtRepr(data["observer"]["twilight"]["nautical"]["end"], tzOffset=tzOffset),
+        _dtRepr(data["observer"]["twilight"]["astronomical"]["begin"], tzOffset=tzOffset),
+        _dtRepr(data["observer"]["twilight"]["astronomical"]["end"], tzOffset=tzOffset),
     )).strip(), tzInfo
 
 
@@ -211,9 +224,10 @@ def report(lat, lng, maxDays=3):
     ret += "预报地点: %s\n" %\
             translateCoordinates(metadata["forecastCoordinates"])
     ret += "找到 %d 条预报。\n" % metadata["count"]
-    ret += "\n<i>显示时间所用时区: %s%s</i>\n\n" % (
+    ret += "\n本报告使用时区:\n  %s (%s%s)\n\n" % (
+        _tzRepr(tzOffset),
         tzInfo["timeZoneId"],
-        tzInfo["dstOffset"] != 0 and " (夏令时)" or ""
+        tzInfo["dstOffset"] != 0 and " 夏令时" or ""
     )
 
     ret += "**** <strong>日月及晨昏蒙影时刻</strong> ****\n"
@@ -236,9 +250,15 @@ def report(lat, lng, maxDays=3):
             if dayCount > maxDays:
                 break
             ret += "\n"
-            ret += "**** " + _dateRepr(forecast["forecast"]) + " ****\n"
+            ret += "**** <strong>" +\
+                _dateRepr(forecast["forecast"]) + "</strong> ****\n"
             currentDay = dayRepr
         ret += _dayForecast(forecast) + "\n"
+
+    ret += "\n报告生成时间: %s\n\n" %\
+        _dtRepr(datetime.datetime.utcnow(), tzOffset)
+    ret += "气象数据来自 Deutscher Wetterdienst 并经过算法处理\n"
+    ret += "时区数据来自 Google API"
     return ret 
 
 
