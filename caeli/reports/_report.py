@@ -8,9 +8,12 @@ import struct
 
 strptime = lambda i: datetime.datetime.strptime(i, "%Y-%m-%dT%H:%M:%SZ")
 
-def _dtRepr(dt, tzOffset):
+def _dtRepr(dt, tzOffset, short=False):
     if type(dt) == str: dt = strptime(dt)
-    return "%04d-%02d-%02d %02d:%02d:%02d" % (dt+tzOffset).timetuple()[:6]
+    if short:
+        return "%02d:%02d" % (dt+tzOffset).timetuple()[3:5]
+    else:
+        return "%04d-%02d-%02d %02d:%02d:%02d" % (dt+tzOffset).timetuple()[:6]
 _dateRepr = lambda dt: "%04d-%02d-%02d" % dt.timetuple()[0:3]
 _hourRepr = lambda dt: chr(0x3358+dt.hour)
 _tempRepr = lambda i: "%3.1f\u2103" % i
@@ -160,30 +163,26 @@ def astroData(lat, lng, pressureFix=None, temperatureFix=None):
     tzOffset = datetime.timedelta(
         seconds=(tzInfo["rawOffset"] + tzInfo["dstOffset"]))
 
+    filltime = lambda i: _dtRepr(i, tzOffset=tzOffset, short=True)
     return ("""
 <pre>
-日     出: %s
-日     落: %s
-月     出: %s
-月     落: %s
-民用晨光始: %s
-民用昏影终: %s
-航海晨光始: %s
-航海昏影终: %s
-天文晨光始: %s
-天文昏影终: %s
+日出 %s 日落 %s
+月出 %s 月落 %s
+天文晨光始 %s 昏影终 %s
+航海晨光始 %s 昏影终 %s
+民用晨光始 %s 昏影终 %s
 </pre>
     """ % (
-        _dtRepr(data["heaven"]["sun"]["rising"], tzOffset=tzOffset),
-        _dtRepr(data["heaven"]["sun"]["setting"], tzOffset=tzOffset),
-        _dtRepr(data["heaven"]["moon"]["rising"], tzOffset=tzOffset), 
-        _dtRepr(data["heaven"]["moon"]["setting"], tzOffset=tzOffset), 
-        _dtRepr(data["observer"]["twilight"]["civil"]["begin"], tzOffset=tzOffset),
-        _dtRepr(data["observer"]["twilight"]["civil"]["end"], tzOffset=tzOffset),
-        _dtRepr(data["observer"]["twilight"]["nautical"]["begin"], tzOffset=tzOffset),
-        _dtRepr(data["observer"]["twilight"]["nautical"]["end"], tzOffset=tzOffset),
-        _dtRepr(data["observer"]["twilight"]["astronomical"]["begin"], tzOffset=tzOffset),
-        _dtRepr(data["observer"]["twilight"]["astronomical"]["end"], tzOffset=tzOffset),
+        filltime(data["heaven"]["sun"]["rising"]),
+        filltime(data["heaven"]["sun"]["setting"]),
+        filltime(data["heaven"]["moon"]["rising"]), 
+        filltime(data["heaven"]["moon"]["setting"]), 
+        filltime(data["observer"]["twilight"]["astronomical"]["begin"]),
+        filltime(data["observer"]["twilight"]["astronomical"]["end"]),
+        filltime(data["observer"]["twilight"]["nautical"]["begin"]),
+        filltime(data["observer"]["twilight"]["nautical"]["end"]),
+        filltime(data["observer"]["twilight"]["civil"]["begin"]),
+        filltime(data["observer"]["twilight"]["civil"]["end"]),
     )).strip(), tzInfo
 
 
