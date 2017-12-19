@@ -6,7 +6,7 @@ import struct
 
 ##############################################################################
 
-_dateRepr = lambda datestr: "<strong>%s</strong>" % datestr
+_dateRepr = lambda dt: "<strong>%04d-%02d-%02d</strong>" % dt.timetuple()[0:3]
 _hourRepr = lambda dt: chr(0x3358+dt.hour)
 _tempRepr = lambda i: "%3.1f\u2103" % i
 
@@ -104,8 +104,7 @@ def averagePressureAndTemperatureIn24hrs(forecasts):
     now = datetime.datetime.utcnow()
     pn, Tn = [], []
 
-    for date in sorted(forecasts.keys())[:24]:
-        forecast = forecasts[date]
+    for forecast in forecasts[:24]:
         forecastTime = forecast["forecast"]
         if (forecastTime - now).total_seconds() <= 86400:
             pressure = forecast["p_surface"]
@@ -121,19 +120,32 @@ def averagePressureAndTemperatureIn24hrs(forecasts):
 
 strptime = lambda i: datetime.datetime.strptime(i, "%Y-%m-%dT%H:%M:%SZ")
 
+# ---- Routine for getting observer's astronomical info from Project Orbuculum
+#      Celesti.
+
 def astroData(lat, lng, pressureFix=None, temperatureFix=None):
+    """Returns a tuple of (`report`, `timezone`), the first is a string
+    containing human-readable reports on astro data, the second is for
+    calculation of observer's timezones."""
     try:
         url = "http://intell.neoatlantis.org/astro/%f/%f/json" % (lat, lng)
         args = []
         if pressureFix: args.append("pressure=%f" % pressureFix)
         if temperatureFix: args.append("temperature=%f" % temperatureFix)
         if args: url += "?" + "&".join(args)
-        print(url)
         q = requests.get(url)
         data = q.json()
     except Exception as e:
         print(e)
         return "No available astronomical data."
+
+    tzInfo = data["observer"]["timezone"] 
+    tzOffset = datetime.timedelta(
+        seconds=(tzInfo["rawOffset"] + tzInfo["dstOffset"]))
+
+    def _dtRepr(srcstr):
+        dt = strptime(srcstr) + tzOffset 
+        return "%04d-%02d-%02d %02d:%02d:%02d" % tuple(dt.timetuple())[0:6]
 
     return ("""
 <pre>
@@ -149,44 +161,49 @@ def astroData(lat, lng, pressureFix=None, temperatureFix=None):
 天文昏影终: %s
 </pre>
     """ % (
-        data["heaven"]["sun"]["rising"], 
-        data["heaven"]["sun"]["setting"], 
-        data["heaven"]["moon"]["rising"], 
-        data["heaven"]["moon"]["setting"], 
-        data["observer"]["twilight"]["civil"]["begin"],
-        data["observer"]["twilight"]["civil"]["end"],
-        data["observer"]["twilight"]["nautical"]["begin"],
-        data["observer"]["twilight"]["nautical"]["end"],
-        data["observer"]["twilight"]["astronomical"]["begin"],
-        data["observer"]["twilight"]["astronomical"]["end"],
-    )).strip().replace("T", " ").replace("Z", "")
+        _dtRepr(data["heaven"]["sun"]["rising"]),
+        _dtRepr(data["heaven"]["sun"]["setting"]),
+        _dtRepr(data["heaven"]["moon"]["rising"]), 
+        _dtRepr(data["heaven"]["moon"]["setting"]), 
+        _dtRepr(data["observer"]["twilight"]["civil"]["begin"]),
+        _dtRepr(data["observer"]["twilight"]["civil"]["end"]),
+        _dtRepr(data["observer"]["twilight"]["nautical"]["begin"]),
+        _dtRepr(data["observer"]["twilight"]["nautical"]["end"]),
+        _dtRepr(data["observer"]["twilight"]["astronomical"]["begin"]),
+        _dtRepr(data["observer"]["twilight"]["astronomical"]["end"]),
+    )).strip(), tzInfo
 
 
-def report(lat, lng):
+# ---- Routine for generating a full report.
+
+def report(lat, lng, maxDays=3):
+    
+    # -------- Fetch weather reports and prepare them for processing.
+    
     url = "http://intell.neoatlantis.org/nwp/%f/%f/" % (lat, lng)
-    print(url)
     q = requests.get(url)
     data = q.json()
-    forecasts = data["forecasts"]
+    forecasts = sorted(
+        [data["forecasts"][i] for i in data["forecasts"]],
+        key=lambda i: i["forecast"]
+    )
+    for each in forecasts:
+        each["forecast"] = strptime(each["forecast"])
+        each["runtime"] = strptime(each["runtime"])
     metadata = data["metadata"]
 
-    dayForecasts = {}
-
-    for key in forecasts:
-        forecasts[key]["forecast"] = strptime(forecasts[key]["forecast"])
-        forecasts[key]["runtime"] = strptime(forecasts[key]["runtime"])
-        date = key[:10]
-        if date not in dayForecasts:
-            dayForecasts[date] = [] 
-        dayForecasts[date].append(forecasts[key])
-
-    for date in dayForecasts:
-        dayForecasts[date] = sorted(\
-            dayForecasts[date], key=lambda i: i["forecast"])
-
-    # End of preparation of forecast data. Now begins forecast.
-
+    # -------- Fetch astronomical info on queried place, providing timezone and
+    #          information on rise/set time of celestial bodies. Query will be
+    #          fixed using averaged pressure and temperature given by weather
+    #          forecasts.
+    
     avgP, avgT = averagePressureAndTemperatureIn24hrs(forecasts)
+    astroReport, tzInfo = astroData(\
+        lat, lng, pressureFix=avgP, temperatureFix=avgT)
+    tzOffset = datetime.timedelta(
+        seconds=(tzInfo["rawOffset"] + tzInfo["dstOffset"]))
+
+    # -------- Generate text report
 
     ret = ""
     ret += "请求地点: %s\n" %\
@@ -194,18 +211,36 @@ def report(lat, lng):
     ret += "预报地点: %s\n" %\
             translateCoordinates(metadata["forecastCoordinates"])
     ret += "找到 %d 条预报。\n" % metadata["count"]
-    ret += "\n<i>以下所有时刻为UTC时间</i>\n\n"
+    ret += "\n<i>显示时间所用时区: %s%s</i>\n\n" % (
+        tzInfo["timeZoneId"],
+        tzInfo["dstOffset"] != 0 and " (夏令时)" or ""
+    )
 
     ret += "**** <strong>日月及晨昏蒙影时刻</strong> ****\n"
-    ret += astroData(lat, lng, pressureFix=avgP, temperatureFix=avgT)
+    ret += astroReport 
 
-    for date in sorted(dayForecasts.keys())[:3]:
-        ret += "\n"
-        ret += "**** " + _dateRepr(date) + " ****\n"
-        for forecast in dayForecasts[date]:
-            ret += _dayForecast(forecast) + "\n"
+    # All datetime are added with offsets, so that the splitting of days also
+    # works. Datetimes are used here in native form(no internal timezone info
+    # stored).
+
+    for each in forecasts:
+        each["forecast"] += tzOffset
+        each["runtime"] += tzOffset
+
+    currentDay = None
+    dayCount = 0
+    for forecast in forecasts:
+        dayRepr = forecast["forecast"].timetuple()[0:3]
+        if dayRepr != currentDay: # one new day. Print splitter.
+            dayCount += 1
+            if dayCount > maxDays:
+                break
+            ret += "\n"
+            ret += "**** " + _dateRepr(forecast["forecast"]) + " ****\n"
+            currentDay = dayRepr
+        ret += _dayForecast(forecast) + "\n"
     return ret 
 
 
 if __name__ == "__main__":
-    print(report(10, 110))
+    print(report(30, 120))
