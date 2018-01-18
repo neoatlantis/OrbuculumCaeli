@@ -87,7 +87,7 @@ def _clctRepr(clct):
         return "晴"
 
 def _pRepr(p):
-    return "%.1f m\u3374" % (p / 100.0)
+    return "%d m\u3374" % (p / 100.0)
 
 def _dayForecast(forecast):
     ret = ""
