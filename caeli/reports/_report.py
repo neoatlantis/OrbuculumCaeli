@@ -163,7 +163,8 @@ def astroData(lat, lng, pressureFix=None, temperatureFix=None):
     tzOffset = datetime.timedelta(
         seconds=(tzInfo["rawOffset"] + tzInfo["dstOffset"]))
 
-    filltime = lambda i: _dtRepr(i, tzOffset=tzOffset, short=True)
+    filltime = lambda i:\
+        _dtRepr(i, tzOffset=tzOffset, short=True) if i != None else "不适用"
     return ("""
 <pre>
 日出 %s 日落 %s
