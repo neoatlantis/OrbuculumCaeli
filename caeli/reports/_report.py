@@ -125,20 +125,23 @@ def translateCoordinates(coordinates):
     return "%s, %s" % (latRet, lngRet)
 
 def averagePressureAndTemperatureIn24hrs(forecasts):
-    now = datetime.datetime.utcnow()
-    pn, Tn = [], []
+    if forecasts:
+        now = datetime.datetime.utcnow()
+        pn, Tn = [], []
 
-    for forecast in forecasts[:24]:
-        forecastTime = forecast["forecast"]
-        if (forecastTime - now).total_seconds() <= 86400:
-            pressure = forecast["p_surface"]
-            temperature = forecast["t_2m"]
-            pn.append(pressure)
-            Tn.append(temperature)
+        for forecast in forecasts[:24]:
+            forecastTime = forecast["forecast"]
+            if (forecastTime - now).total_seconds() <= 86400:
+                pressure = forecast["p_surface"]
+                temperature = forecast["t_2m"]
+                pn.append(pressure)
+                Tn.append(temperature)
 
-    p = sum(pn) / len(pn)
-    T = sum(Tn) / len(Tn) + 273.15
-    return p, T
+        p = sum(pn) / len(pn)
+        T = sum(Tn) / len(Tn) + 273.15
+        return p, T
+    else:
+        return (101325, 273.15)
 
 ##############################################################################
 
@@ -246,23 +249,28 @@ def report(lat, lng, maxDays=3):
     # works. Datetimes are used here in native form(no internal timezone info
     # stored).
 
-    for each in forecasts:
-        each["forecast"] += tzOffset
-        each["runtime"] += tzOffset
+    if forecasts: # if forecasts are found
+        for each in forecasts:
+            each["forecast"] += tzOffset
+            each["runtime"] += tzOffset
 
-    currentDay = None
-    dayCount = 0
-    for forecast in forecasts:
-        dayRepr = forecast["forecast"].timetuple()[0:3]
-        if dayRepr != currentDay: # one new day. Print splitter.
-            dayCount += 1
-            if dayCount > maxDays:
-                break
-            ret += "\n"
-            ret += "**** <strong>" +\
-                _dateRepr(forecast["forecast"]) + "</strong> ****\n"
-            currentDay = dayRepr
-        ret += _dayForecast(forecast) + "\n"
+        currentDay = None
+        dayCount = 0
+        for forecast in forecasts:
+            dayRepr = forecast["forecast"].timetuple()[0:3]
+            if dayRepr != currentDay: # one new day. Print splitter.
+                dayCount += 1
+                if dayCount > maxDays:
+                    break
+                ret += "\n"
+                ret += "**** <strong>" +\
+                    _dateRepr(forecast["forecast"]) + "</strong> ****\n"
+                currentDay = dayRepr
+            ret += _dayForecast(forecast) + "\n"
+    else:
+        ret += "\n未找到天气预报数据，请稍后重试。"
+        ret += "\n无法修正天文计算所需气温及气压，使用默认值。"
+        ret += "\n"
 
     ret += "\n报告生成时间: %s\n\n" %\
         _dtRepr(datetime.datetime.utcnow(), tzOffset)
