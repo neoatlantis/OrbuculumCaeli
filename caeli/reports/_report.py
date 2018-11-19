@@ -269,7 +269,7 @@ def report(lat, lng, maxDays=3):
             ret += _dayForecast(forecast) + "\n"
     else:
         ret += "\n未找到天气预报数据，请稍后重试。"
-        ret += "\n无法修正天文计算所需气温及气压，使用默认值。"
+        ret += "\n无法修正天文计算所需气温及气压，默认0\u2103, 101.325kPa"
         ret += "\n"
 
     ret += "\n报告生成时间: %s\n\n" %\
